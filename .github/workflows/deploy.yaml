@@ -34,7 +34,7 @@ jobs:
           # Se for pN, executa make pN; senão, só sincroniza
           if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
             ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-              "cd /home/bcc/fns21/Sistemas-Operacionais-2/ppos-aluno && make clean && make $BRANCH"
+              "cd /home/bcc/fns21/Sistemas-Operacionais-2/ppos-aluno && make clean && make debug $BRANCH"
           else
             echo "Branch '$BRANCH' não é um projeto, pulando compilação."
           fi
