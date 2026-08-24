@@ -1,0 +1,40 @@
+name: Teste no DInf
+
+on:
+  push:
+    branches:
+      - main
+      - 'p[0-9]+'   # dispara em p1, p2, p3, ..., p14
+
+jobs:
+  deploy-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar chave SSH e known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p ${{ vars.SSH_PORT }} -H ${{ vars.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sincronizar arquivos (Rsync)
+        run: |
+          rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
+            ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21
+
+      - name: Executar Makefile no servidor
+        run: |
+          # Extrai o nome da branch (ex: "p1", "p2", ...)
+          BRANCH="${{ github.ref_name }}"
+
+          # Se for pN, executa make pN; senão, só sincroniza
+          if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
+            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+              "cd /home/bcc/fns21/Sistemas-Operacionais-2/ppos-aluno && make clean && make $BRANCH"
+          else
+            echo "Branch '$BRANCH' não é um projeto, pulando compilação."
+          fi
