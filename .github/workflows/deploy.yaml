@@ -26,62 +26,45 @@ jobs:
           rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
             ./ppos-aluno/ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21/ppos-aluno/
 
-      - name: Compilar no servidor
-        continue-on-error: false
+      - name: Compilar e testar no servidor
         run: |
           BRANCH="${{ github.ref_name }}"
 
-          if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
-            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-              "cd /home/bcc/fns21/ppos-aluno && make clean && make debug $BRANCH"
+          # Na main, compila e testa todos os projetos p1..p14
+          if [[ "$BRANCH" == "main" ]]; then
+            PROJECTS="p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14"
+          elif [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
+            PROJECTS="$BRANCH"
           else
-            echo "Branch '$BRANCH' não é um projeto, pulando compilação."
+            echo "Branch '$BRANCH' não é um projeto, pulando."
+            exit 0
           fi
 
-      - name: Executar testes no servidor
-        continue-on-error: false
-        run: |
-          BRANCH="${{ github.ref_name }}"
-
-          if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
-            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} bash << EOF
-              set -e
-              cd /home/bcc/fns21/ppos-aluno
-              PASS=0
-              FAIL=0
-              ERRORS=""
-
-              for EXPECTED in test/$BRANCH/pingpong-*.txt; do
-                # nome do binário = nome do arquivo sem .txt
-                BIN=\$(basename "\$EXPECTED" .txt)
-
-                if [ ! -f "\$BIN" ]; then
-                  echo "SKIP \$BIN (binário não encontrado)"
-                  continue
-                fi
-
-                echo "=== Testando \$BIN ==="
-                ACTUAL=\$(timeout 30 ./\$BIN 2>&1) || true
-                EXPECTED_OUT=\$(cat "\$EXPECTED")
-
-                if [ "\$ACTUAL" = "\$EXPECTED_OUT" ]; then
-                  echo "PASS \$BIN"
-                  PASS=\$((PASS + 1))
-                else
-                  echo "FAIL \$BIN"
-                  echo "--- saída esperada ---"
-                  echo "\$EXPECTED_OUT" | head -20
-                  echo "--- saída obtida ---"
-                  echo "\$ACTUAL" | head -20
-                  FAIL=\$((FAIL + 1))
-                  ERRORS="\$ERRORS \$BIN"
-                fi
-              done
-
-              echo ""
-              echo "Resultado: \$PASS passou(aram), \$FAIL falhou(aram)"
-
-              if [ \$FAIL -gt 0 ]; then
-                echo "Testes com falha:\$ERRORS"
-                exit 1
-              fi
+          ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+            "cd /home/bcc/fns21/ppos-aluno && \
+            TOTAL_PASS=0 && TOTAL_FAIL=0 && ALL_ERRORS='' && \
+            for PROJECT in $PROJECTS; do \
+              echo '' && \
+              echo '=============================' && \
+              echo \"=== Compilando \$PROJECT ===\" && \
+              echo '=============================' && \
+              make clean && make debug \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
+              for EXPECTED in test/\$PROJECT/pingpong-*.txt; do \
+                BIN=\$(basename \"\$EXPECTED\" .txt) && \
+                if [ ! -f \"\$BIN\" ]; then echo \"SKIP \$BIN (binário não encontrado)\"; continue; fi && \
+                echo \"=== Testando \$BIN ===\" && \
+                ACTUAL=\$(timeout 30 ./\$BIN 2>&1) || true && \
+                EXPECTED_OUT=\$(cat \"\$EXPECTED\") && \
+                if [ \"\$ACTUAL\" = \"\$EXPECTED_OUT\" ]; then \
+                  echo \"PASS \$BIN\" && TOTAL_PASS=\$((TOTAL_PASS + 1)); \
+                else \
+                  echo \"FAIL \$BIN\" && \
+                  echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -20 && \
+                  echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -20 && \
+                  TOTAL_FAIL=\$((TOTAL_FAIL + 1)) && ALL_ERRORS=\"\$ALL_ERRORS \$BIN\"; \
+                fi; \
+              done; \
+            done && \
+            echo '' && \
+            echo \"Resultado final: \$TOTAL_PASS passou(aram), \$TOTAL_FAIL falhou(aram)\" && \
+            if [ \$TOTAL_FAIL -gt 0 ]; then echo \"Falhas:\$ALL_ERRORS\" && exit 1; fi"
