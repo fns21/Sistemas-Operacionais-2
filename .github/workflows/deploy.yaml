@@ -24,7 +24,7 @@ jobs:
       - name: Sincronizar arquivos (Rsync)
         run: |
           rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
-            ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21/ppos-aluno/
+            ./ppos-aluno/ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21/ppos-aluno/
 
       - name: Executar Makefile no servidor
         run: |
