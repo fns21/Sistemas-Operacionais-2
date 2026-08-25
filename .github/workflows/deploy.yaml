@@ -85,7 +85,3 @@ jobs:
                 echo "Testes com falha:\$ERRORS"
                 exit 1
               fi
-EOF
-          else
-            echo "Branch '$BRANCH' não é um projeto, pulando testes."
-          fi
