@@ -26,15 +26,66 @@ jobs:
           rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
             ./ppos-aluno/ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21/ppos-aluno/
 
-      - name: Executar Makefile no servidor
+      - name: Compilar no servidor
+        continue-on-error: false
         run: |
-          # Extrai o nome da branch (ex: "p1", "p2", ...)
           BRANCH="${{ github.ref_name }}"
 
-          # Se for pN, executa make pN; senão, só sincroniza
           if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
             ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
               "cd /home/bcc/fns21/ppos-aluno && make clean && make debug $BRANCH"
           else
             echo "Branch '$BRANCH' não é um projeto, pulando compilação."
+          fi
+
+      - name: Executar testes no servidor
+        continue-on-error: false
+        run: |
+          BRANCH="${{ github.ref_name }}"
+
+          if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
+            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} bash << EOF
+              set -e
+              cd /home/bcc/fns21/ppos-aluno
+              PASS=0
+              FAIL=0
+              ERRORS=""
+
+              for EXPECTED in test/$BRANCH/pingpong-*.txt; do
+                # nome do binário = nome do arquivo sem .txt
+                BIN=\$(basename "\$EXPECTED" .txt)
+
+                if [ ! -f "\$BIN" ]; then
+                  echo "SKIP \$BIN (binário não encontrado)"
+                  continue
+                fi
+
+                echo "=== Testando \$BIN ==="
+                ACTUAL=\$(timeout 30 ./\$BIN 2>&1) || true
+                EXPECTED_OUT=\$(cat "\$EXPECTED")
+
+                if [ "\$ACTUAL" = "\$EXPECTED_OUT" ]; then
+                  echo "PASS \$BIN"
+                  PASS=\$((PASS + 1))
+                else
+                  echo "FAIL \$BIN"
+                  echo "--- saída esperada ---"
+                  echo "\$EXPECTED_OUT" | head -20
+                  echo "--- saída obtida ---"
+                  echo "\$ACTUAL" | head -20
+                  FAIL=\$((FAIL + 1))
+                  ERRORS="\$ERRORS \$BIN"
+                fi
+              done
+
+              echo ""
+              echo "Resultado: \$PASS passou(aram), \$FAIL falhou(aram)"
+
+              if [ \$FAIL -gt 0 ]; then
+                echo "Testes com falha:\$ERRORS"
+                exit 1
+              fi
+EOF
+          else
+            echo "Branch '$BRANCH' não é um projeto, pulando testes."
           fi
