@@ -5,10 +5,9 @@
 // Dispatcher: gerencia os estados das tarefas.
 #include <stdlib.h>
 #include <string.h>
-#include "ctx.h"
 #include "macros.h"
-#include "task.h"
 #include "dispatcher.h"
+#include "task.h"
 
 void dispatcher_init()
 {

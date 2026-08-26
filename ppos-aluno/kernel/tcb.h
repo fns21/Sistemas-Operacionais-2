@@ -9,7 +9,7 @@
 #ifndef __PPOS_TCB__
 #define __PPOS_TCB__
 
-#include "ctx.h"
+#include "kernel/ctx.h"
 
 enum task_status_t
 {
