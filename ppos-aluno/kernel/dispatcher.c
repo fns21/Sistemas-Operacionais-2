@@ -2,6 +2,8 @@
 
 // Este arquivo PODE/DEVE ser alterado.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Dispatcher: gerencia os estados das tarefas.
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +38,7 @@ int task_switch(struct task_t *task)
 {
     task_t *prev_task = current_task;
 
-    // Se task for NULL, a tarefa atual está terminando: marca e volta ao pai
+    // Finaliza e volta ao pai
     if (task == NULL)
     {
         prev_task->status = TASK_TERMINATED;
@@ -47,7 +49,7 @@ int task_switch(struct task_t *task)
     if (task->status == TASK_TERMINATED)
         return NOERROR;
 
-    // Atualiza status: prev volta a READY (se não terminou), next passa a RUNNING
+    // Se nao terminou, volta para a fila de prontas e muda o status da tarefa atual
     if (prev_task->status != TASK_TERMINATED)
         prev_task->status = TASK_READY;
     task->status = TASK_RUNNING;

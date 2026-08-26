@@ -5,6 +5,8 @@
 // ATENÇÃO: ESTE ARQUIVO NÃO DEVE SER ALTERADO;
 // ALTERAÇÕES SERÃO DESCARTADAS NA CORREÇÃO.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Implementa o dispatcher e operações internas sobre as tarefas.
 
 #ifndef __PPOS_DISPATCHER__

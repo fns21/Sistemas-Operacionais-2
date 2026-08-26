@@ -4,6 +4,8 @@
 
 // Este arquivo PODE/DEVE ser alterado.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Descritor de tarefas (TCB - Task Control Block).
 
 #ifndef __PPOS_TCB__
@@ -27,6 +29,7 @@ typedef struct task_t
     struct ctx_t context;  // contexto da tarefa
     int status;     // pronta, executando, ...
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
+    ...
 } task_t;
 
 extern task_t *current_task;  // tarefa atual

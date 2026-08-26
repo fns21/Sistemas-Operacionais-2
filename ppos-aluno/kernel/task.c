@@ -2,6 +2,8 @@
 
 // Este arquivo PODE/DEVE ser alterado.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Gerência básica de tarefas.
 
 #define _POSIX_C_SOURCE 200809L
