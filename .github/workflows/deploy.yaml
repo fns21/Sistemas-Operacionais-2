@@ -73,7 +73,7 @@ jobs:
                 done; \
               done && \
               echo '' && \
-              echo \"Resultado final: \$TOTAL_PASS passou(aram), \$TOTAL_FAIL falhou(aram)\" && \
+              echo \"Resultado final: \$TOTAL_PASS passou, \$TOTAL_FAIL falhou\" && \
               if [ \$TOTAL_FAIL -gt 0 ]; then echo \"Falhas:\$ALL_ERRORS\" && exit 1; fi" && break
             echo "Falhou, aguardando 10s..."
             sleep 10
