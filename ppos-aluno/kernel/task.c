@@ -4,9 +4,12 @@
 
 // Gerência básica de tarefas.
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdlib.h>
 #include <string.h>
 #include "task.h"
+#include "macros.h"
 
 #define STACK_SIZE 64 * 1024  // 64 KB por tarefa
 
