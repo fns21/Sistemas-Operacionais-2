@@ -50,7 +50,9 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
         return NULL;
     }
 
-    void *stack = aligned_alloc(16, STACK_SIZE);
+    void *stack = NULL;
+    if (posix_memalign(&stack, 16, STACK_SIZE) != 0)
+        stack = NULL;
     if (stack == NULL)
     {
         ppos_debug("Erro ao alocar pilha para a nova tarefa");
