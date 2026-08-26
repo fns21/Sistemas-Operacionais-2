@@ -4,19 +4,34 @@
 
 // Este arquivo PODE/DEVE ser alterado.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Descritor de tarefas (TCB - Task Control Block).
 
 #ifndef __PPOS_TCB__
 #define __PPOS_TCB__
 
+#include "ctx.h"
+
+enum task_status_t
+{
+    TASK_READY,
+    TASK_RUNNING,
+    TASK_WAITING,
+    TASK_TERMINATED
+};
+
 // Task Control Block (TCB), infos sobre uma tarefa
-struct task_t
+typedef struct task_t
 {
     int id;         // identificador da tarefa
     char *name;     // nome da tarefa
-    ctx_t context;  // contexto da tarefa
+    struct ctx_t context;  // contexto da tarefa
     int status;     // pronta, executando, ...
-    ...             // demais informações, a completar
-};
+    struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
+} task_t;
+
+extern task_t *current_task;  // tarefa atual
+extern task_t *task_kernel;   // tarefa do núcleo
 
 #endif

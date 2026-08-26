@@ -23,18 +23,76 @@ jobs:
 
       - name: Sincronizar arquivos (Rsync)
         run: |
-          rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
-            ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21
+          for i in 1 2 3 4 5; do
+            echo "Tentativa $i..."
+            rsync -avz --delete --exclude='.git/' -e "ssh -p ${{ vars.SSH_PORT }}" \
+              ./ppos-aluno/ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:/home/bcc/fns21/ppos-aluno/ && break
+            echo "Falhou, aguardando 10s..."
+            sleep 10
+          done
 
-      - name: Executar Makefile no servidor
+      - name: Compilar e testar no servidor
         run: |
-          # Extrai o nome da branch (ex: "p1", "p2", ...)
           BRANCH="${{ github.ref_name }}"
 
-          # Se for pN, executa make pN; senão, só sincroniza
-          if [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
-            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-              "cd /home/bcc/fns21/Sistemas-Operacionais-2/ppos-aluno && make clean && make $BRANCH"
+          # Na main, compila e testa todos os projetos p1..p14
+          if [[ "$BRANCH" == "main" ]]; then
+            PROJECTS="p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14"
+          elif [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
+            PROJECTS="$BRANCH"
           else
-            echo "Branch '$BRANCH' não é um projeto, pulando compilação."
+            echo "Branch '$BRANCH' não é um projeto, pulando."
+            exit 0
           fi
+
+          for i in 1 2 3 4 5; do
+            echo "Tentativa $i..."
+            ssh -p ${{ vars.SSH_PORT }} ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+              "cd /home/bcc/fns21/ppos-aluno && \
+              TOTAL_PASS=0 && TOTAL_FAIL=0 && ALL_ERRORS='' && \
+              for PROJECT in $PROJECTS; do \
+                echo '' && \
+                echo '=============================' && \
+                echo \"=== Compilando \$PROJECT ===\" && \
+                echo '=============================' && \
+                make clean && make \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
+                case \$PROJECT in \
+                  p1)  BINS='pingpong-task1 pingpong-task2 pingpong-task3' ;; \
+                  p2)  BINS='pingpong-dispatcher' ;; \
+                  p3)  BINS='pingpong-scheduler' ;; \
+                  p4)  BINS='pingpong-preempcao' ;; \
+                  p5)  BINS='pingpong-contab pingpong-contab-prio pingpong-contab-stress' ;; \
+                  p6)  BINS='pingpong-wait pingpong-wait-stress' ;; \
+                  p7)  BINS='pingpong-sleep' ;; \
+                  p8)  BINS='pingpong-semaphore pingpong-semaphore-stress' ;; \
+                  p9)  BINS='pingpong-prodcons' ;; \
+                  p10) BINS='pingpong-mqueue' ;; \
+                  p11) BINS='pingpong-memoria pingpong-mqueue' ;; \
+                  p12) BINS='pingpong-disco pingpong-disco-stress' ;; \
+                  p13) BINS='pingpong-disco-stress' ;; \
+                  p14) BINS='pingpong-cache-on pingpong-cache-off' ;; \
+                  *)   BINS='' ;; \
+                esac && \
+                for BIN in \$BINS; do \
+                  EXPECTED=\"test/\$BIN.txt\" && \
+                  if [ ! -f \"\$EXPECTED\" ]; then echo \"SKIP \$BIN (expected não encontrado)\"; continue; fi && \
+                  if [ ! -f \"\$BIN\" ]; then echo \"SKIP \$BIN (binário não encontrado)\"; continue; fi && \
+                  echo \"=== Testando \$BIN ===\" && \
+                  ACTUAL=\$(timeout 30 ./\$BIN 2>&1) || true && \
+                  EXPECTED_OUT=\$(cat \"\$EXPECTED\") && \
+                  if [ \"\$ACTUAL\" = \"\$EXPECTED_OUT\" ]; then \
+                    echo \"PASS \$BIN\" && TOTAL_PASS=\$((TOTAL_PASS + 1)); \
+                  else \
+                    echo \"FAIL \$BIN\" && \
+                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -20 && \
+                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -20 && \
+                    TOTAL_FAIL=\$((TOTAL_FAIL + 1)) && ALL_ERRORS=\"\$ALL_ERRORS \$BIN\"; \
+                  fi; \
+                done; \
+              done && \
+              echo '' && \
+              echo \"Resultado final: \$TOTAL_PASS passou, \$TOTAL_FAIL falhou\" && \
+              if [ \$TOTAL_FAIL -gt 0 ]; then echo \"Falhas:\$ALL_ERRORS\" && exit 1; fi" && break
+            echo "Falhou, aguardando 10s..."
+            sleep 10
+          done

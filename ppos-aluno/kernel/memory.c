@@ -6,6 +6,7 @@
 
 // somente para a implementação trivial
 #include <stdlib.h>
+#include "ctx.h"
 
 // implementação trivial, a ser substituída
 void *mem_alloc(int size)
