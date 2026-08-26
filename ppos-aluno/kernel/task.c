@@ -69,12 +69,13 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     }
 
     new_task->id     = next_id++;
-    new_task->name   = strdup(name);
+    new_task->name   = name ? strdup(name) : NULL;
     new_task->status = TASK_READY;
     new_task->parent = current_task;
 
     ppos_debug("Task %s (ID %d) create task %s (ID %d)\n",
-               current_task->name, current_task->id, new_task->name, new_task->id);
+               current_task->name, current_task->id,
+               new_task->name ? new_task->name : "(null)", new_task->id);
 
     return new_task;
 }

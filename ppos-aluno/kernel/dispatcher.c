@@ -36,13 +36,21 @@ int task_switch(struct task_t *task)
 {
     task_t *prev_task = current_task;
 
-    // Se task for NULL, transfere para a tarefa pai da atual
+    // Se task for NULL, a tarefa atual está terminando: marca e volta ao pai
     if (task == NULL)
+    {
+        prev_task->status = TASK_TERMINATED;
         task = current_task->parent;
+    }
 
     // Ignora sem erro se a tarefa já tiver terminado
     if (task->status == TASK_TERMINATED)
         return NOERROR;
+
+    // Atualiza status: prev volta a READY (se não terminou), next passa a RUNNING
+    if (prev_task->status != TASK_TERMINATED)
+        prev_task->status = TASK_READY;
+    task->status = TASK_RUNNING;
 
     // Atualiza tarefa atual antes da troca de contexto
     current_task = task;

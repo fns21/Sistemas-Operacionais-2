@@ -55,7 +55,7 @@ jobs:
                 echo '=============================' && \
                 echo \"=== Compilando \$PROJECT ===\" && \
                 echo '=============================' && \
-                make clean && make debug \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
+                make clean && make \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
                 case \$PROJECT in \
                   p1)  BINS='pingpong-task1 pingpong-task2 pingpong-task3' ;; \
                   p2)  BINS='pingpong-dispatcher' ;; \
