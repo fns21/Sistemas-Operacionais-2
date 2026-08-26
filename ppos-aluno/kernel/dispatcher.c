@@ -21,7 +21,7 @@ void dispatcher()
 {
     extern void user_main(void *);
 
-    task_t* task_user = task_create("user", user_main, NULL);
+    task_t* task_user = task_create("user_main", user_main, NULL);
     if (task_user == NULL)
     {
         ppos_debug("Erro ao criar tarefa de usuário");
