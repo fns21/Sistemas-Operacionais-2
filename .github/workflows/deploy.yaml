@@ -56,8 +56,26 @@ jobs:
                 echo \"=== Compilando \$PROJECT ===\" && \
                 echo '=============================' && \
                 make clean && make debug \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
-                for EXPECTED in test/\$PROJECT/pingpong-*.txt; do \
-                  BIN=\$(basename \"\$EXPECTED\" .txt) && \
+                case \$PROJECT in \
+                  p1)  BINS='pingpong-task1 pingpong-task2 pingpong-task3' ;; \
+                  p2)  BINS='pingpong-dispatcher' ;; \
+                  p3)  BINS='pingpong-scheduler' ;; \
+                  p4)  BINS='pingpong-preempcao' ;; \
+                  p5)  BINS='pingpong-contab pingpong-contab-prio pingpong-contab-stress' ;; \
+                  p6)  BINS='pingpong-wait pingpong-wait-stress' ;; \
+                  p7)  BINS='pingpong-sleep' ;; \
+                  p8)  BINS='pingpong-semaphore pingpong-semaphore-stress' ;; \
+                  p9)  BINS='pingpong-prodcons' ;; \
+                  p10) BINS='pingpong-mqueue' ;; \
+                  p11) BINS='pingpong-memoria pingpong-mqueue' ;; \
+                  p12) BINS='pingpong-disco pingpong-disco-stress' ;; \
+                  p13) BINS='pingpong-disco-stress' ;; \
+                  p14) BINS='pingpong-cache-on pingpong-cache-off' ;; \
+                  *)   BINS='' ;; \
+                esac && \
+                for BIN in \$BINS; do \
+                  EXPECTED=\"test/\$BIN.txt\" && \
+                  if [ ! -f \"\$EXPECTED\" ]; then echo \"SKIP \$BIN (expected não encontrado)\"; continue; fi && \
                   if [ ! -f \"\$BIN\" ]; then echo \"SKIP \$BIN (binário não encontrado)\"; continue; fi && \
                   echo \"=== Testando \$BIN ===\" && \
                   ACTUAL=\$(timeout 30 ./\$BIN 2>&1) || true && \
