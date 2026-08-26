@@ -20,7 +20,7 @@ void task_init()
 
     if (kernel_task == NULL)
     {
-        perror("Erro ao alocar memória para a tarefa kernel");
+        ppos_debug("Erro ao alocar memória para a tarefa kernel");
         exit(1);
     }
 
@@ -43,21 +43,21 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     task_t *new_task = malloc(sizeof(task_t));
     if (new_task == NULL)
     {
-        perror("Erro ao alocar memória para a nova tarefa");
+        ppos_debug("Erro ao alocar memória para a nova tarefa");
         return NULL;
     }
 
     void *stack = aligned_alloc(16, STACK_SIZE);
     if (stack == NULL)
     {
-        perror("Erro ao alocar pilha para a nova tarefa");
+        ppos_debug("Erro ao alocar pilha para a nova tarefa");
         free(new_task);
         return NULL;
     }
 
     if (ctx_create(&new_task->context, entry, arg, stack, STACK_SIZE) < 0)
     {
-        perror("Erro ao criar contexto da nova tarefa");
+        ppos_debug("Erro ao criar contexto da nova tarefa");
         free(stack);
         free(new_task);
         return NULL;

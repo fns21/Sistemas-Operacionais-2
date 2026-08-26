@@ -11,9 +11,6 @@
 
 #include "ctx.h"
 
-extern task_t *current_task;  // tarefa atual
-extern task_t *kernel_task;   // tarefa do núcleo
-
 enum task_status_t
 {
     TASK_READY,
@@ -29,8 +26,10 @@ typedef struct task_t
     char *name;     // nome da tarefa
     ctx_t context;  // contexto da tarefa
     int status;     // pronta, executando, ...
-    task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
-    ...             // demais informações, a completar
+    struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
 } task_t;
+
+extern task_t *current_task;  // tarefa atual
+extern task_t *task_kernel;   // tarefa do núcleo
 
 #endif
