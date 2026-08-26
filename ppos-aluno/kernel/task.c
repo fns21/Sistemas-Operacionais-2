@@ -12,26 +12,26 @@
 
 task_t *current_task = NULL;
 static int next_id = 0;
-task_t *kernel_task = NULL;
+task_t *task_kernel = NULL;
 
 void task_init()
 {
-    kernel_task = malloc(sizeof(task_t));
+    task_kernel = malloc(sizeof(task_t));
 
-    if (kernel_task == NULL)
+    if (task_kernel == NULL)
     {
         ppos_debug("Erro ao alocar memória para a tarefa kernel");
         exit(1);
     }
 
-    kernel_task->id     = next_id++;
-    kernel_task->name   = "kernel";
-    kernel_task->status = TASK_RUNNING;
-    kernel_task->parent = NULL;
+    task_kernel->id     = next_id++;
+    task_kernel->name   = "kernel";
+    task_kernel->status = TASK_RUNNING;
+    task_kernel->parent = NULL;
 
-    memset(&kernel_task->context, 0, sizeof(ctx_t));
+    memset(&task_kernel->context, 0, sizeof(struct ctx_t));
 
-    current_task = kernel_task;
+    current_task = task_kernel;
 }
 
 void task_term()
@@ -79,14 +79,14 @@ int task_destroy(struct task_t *task)
     if (task == NULL || task->status != TASK_TERMINATED)
         return ERROR;
 
+    ppos_debug("Task %s (ID %d) destroyed\n", task->name, task->id);
+
     // libera a pilha salva no contexto
     if (task->context.stack != NULL)
         free(task->context.stack);
 
     free(task->name);
     free(task);
-
-    ppos_debug("Task %s (ID %d) destroyed\n", task->name, task->id);
 
     return NOERROR;
 }

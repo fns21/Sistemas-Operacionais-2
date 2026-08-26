@@ -9,7 +9,7 @@
 #ifndef __PPOS_TCB__
 #define __PPOS_TCB__
 
-#include "kernel/ctx.h"
+#include "ctx.h"
 
 enum task_status_t
 {
@@ -24,7 +24,7 @@ typedef struct task_t
 {
     int id;         // identificador da tarefa
     char *name;     // nome da tarefa
-    ctx_t context;  // contexto da tarefa
+    struct ctx_t context;  // contexto da tarefa
     int status;     // pronta, executando, ...
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
 } task_t;
