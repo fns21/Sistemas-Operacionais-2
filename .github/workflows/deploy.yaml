@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - 'p[0-9]+'       # dispara em p1, p2, p3, ..., p14
-      - generic_queue   # dispara na branch da fila genérica
+      - generic-queue   # dispara na branch da fila genérica
 
 jobs:
   deploy-and-build:
