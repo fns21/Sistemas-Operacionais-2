@@ -70,8 +70,8 @@ jobs:
                     echo \"PASS \$BIN\" && TOTAL_PASS=\$((TOTAL_PASS + 1)); \
                   else \
                     echo \"FAIL \$BIN\" && \
-                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -20 && \
-                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -20 && \
+                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -50 && \
+                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -50 && \
                     TOTAL_FAIL=\$((TOTAL_FAIL + 1)) && ALL_ERRORS=\"\$ALL_ERRORS \$BIN\"; \
                   fi; \
                   continue; \
@@ -105,8 +105,8 @@ jobs:
                     echo \"PASS \$BIN\" && TOTAL_PASS=\$((TOTAL_PASS + 1)); \
                   else \
                     echo \"FAIL \$BIN\" && \
-                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -20 && \
-                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -20 && \
+                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -50 && \
+                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -50 && \
                     TOTAL_FAIL=\$((TOTAL_FAIL + 1)) && ALL_ERRORS=\"\$ALL_ERRORS \$BIN\"; \
                   fi; \
                 done; \
