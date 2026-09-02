@@ -11,18 +11,18 @@
 #include <stdlib.h>
 #include "queue.h"
 
-struct queue_t
-{
-    void* iterator;
-    struct node_t* head;
-    struct node_t* tail;
-    int size;
-};
-
 struct node_t
 {
-    void* item;
-    struct node_t* next;
+    void *item;
+    struct node_t *next;
+};
+
+struct queue_t
+{
+    struct node_t *head;
+    struct node_t *tail;
+    struct node_t *iterator;
+    int size;
 };
 
 struct queue_t *queue_create()
@@ -31,16 +31,16 @@ struct queue_t *queue_create()
     if (queue == NULL)
         return NULL;
 
+    queue->head     = NULL;
+    queue->tail     = NULL;
     queue->iterator = NULL;
-    queue->head = NULL;
-    queue->tail = NULL;
-    queue->size = 0;
+    queue->size     = 0;
 
     return queue;
 }
 
 int queue_destroy(struct queue_t *queue)
-{    
+{
     if (queue == NULL)
         return ERROR;
 
@@ -62,14 +62,14 @@ int queue_add(struct queue_t *queue, void *item)
 
     if (queue->size == 0)
     {
-        queue->head = new_node;
-        queue->tail = new_node;
+        queue->head     = new_node;
+        queue->tail     = new_node;
         queue->iterator = new_node;
     }
     else
     {
         queue->tail->next = new_node;
-        queue->tail = new_node;
+        queue->tail       = new_node;
     }
     queue->size++;
 
@@ -80,21 +80,38 @@ int queue_del(struct queue_t *queue, void *item)
 {
     if (queue == NULL || item == NULL)
         return ERROR;
-    
-    void* next_item = queue->head;
-    while (next_item != queue->tail)
+
+    struct node_t *prev = NULL;
+    struct node_t *curr = queue->head;
+
+    // busca o node que contem o item
+    while (curr != NULL)
     {
-        if (next_item == item)
-        {
-            if (queue->iterator == item)
-                queue->iterator = queue_next(queue);
-            free(item);
-            queue->size--;
-            return NOERROR;
-        }
-        next_item = queue_next(queue);
+        if (curr->item == item)
+            break;
+        prev = curr;
+        curr = curr->next;
     }
-    return ERROR;
+
+    if (curr == NULL)
+        return ERROR;
+
+    if (queue->iterator == curr)
+        queue->iterator = curr->next;
+
+    // remove o node da lista
+    if (prev == NULL)
+        queue->head = curr->next;  // era o head
+    else
+        prev->next = curr->next;
+
+    if (curr == queue->tail)
+        queue->tail = prev;  // era o tail
+
+    free(curr);  // libera o node (nao o item)
+    queue->size--;
+
+    return NOERROR;
 }
 
 bool queue_has(struct queue_t *queue, void *item)
@@ -102,12 +119,12 @@ bool queue_has(struct queue_t *queue, void *item)
     if (queue == NULL || item == NULL)
         return false;
 
-    void* next_item = queue->head;
-    while (next_item != queue->tail)
+    struct node_t *curr = queue->head;
+    while (curr != NULL)
     {
-        if (next_item == item)
+        if (curr->item == item)
             return true;
-        next_item = queue_next(queue);
+        curr = curr->next;
     }
     return false;
 }
@@ -125,32 +142,34 @@ void *queue_head(struct queue_t *queue)
         return NULL;
 
     queue->iterator = queue->head;
-    return queue->iterator;
+    return queue->iterator->item;
 }
 
 void *queue_next(struct queue_t *queue)
 {
-    if (queue == NULL || queue->size == 0)
+    if (queue == NULL || queue->size == 0 || queue->iterator == NULL)
         return NULL;
 
-    if (queue->iterator == queue->tail)
+    queue->iterator = queue->iterator->next;
+
+    if (queue->iterator == NULL)
         return NULL;
 
-    queue->iterator = ((struct node_t*)queue->iterator)->next;
-    return queue->iterator;
+    return queue->iterator->item;
 }
 
 void *queue_item(struct queue_t *queue)
 {
-    if (queue == NULL || queue->size == 0)
+    if (queue == NULL || queue->size == 0 || queue->iterator == NULL)
         return NULL;
 
-    return queue->iterator;
+    return queue->iterator->item;
 }
 
 void queue_print(char *name, struct queue_t *queue, void(func)(void *))
 {
     printf("%s: ", name);
+
     if (queue == NULL)
     {
         printf("undef\n");
@@ -164,15 +183,14 @@ void queue_print(char *name, struct queue_t *queue, void(func)(void *))
     }
 
     printf("[ ");
-    void* item = queue_head(queue);
-    while (item != NULL)
+    struct node_t *curr = queue->head;
+    while (curr != NULL)
     {
         if (func != NULL)
-            func(item);
+            func(curr->item);
         else
             printf("undef ");
-        item = queue_next(queue);
+        curr = curr->next;
     }
     printf("] (%d items)\n", queue->size);
 }
-
