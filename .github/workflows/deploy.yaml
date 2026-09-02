@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-      - 'p[0-9]+'   # dispara em p1, p2, p3, ..., p14
+      - 'p[0-9]+'       # dispara em p1, p2, p3, ..., p14
+      - generic_queue   # dispara na branch da fila genérica
 
 jobs:
   deploy-and-build:
@@ -40,6 +41,8 @@ jobs:
             PROJECTS="p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14"
           elif [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
             PROJECTS="$BRANCH"
+          elif [[ "$BRANCH" == "generic_queue" ]]; then
+            PROJECTS="generic_queue"
           else
             echo "Branch '$BRANCH' não é um projeto, pulando."
             exit 0
@@ -55,6 +58,24 @@ jobs:
                 echo '=============================' && \
                 echo \"=== Compilando \$PROJECT ===\" && \
                 echo '=============================' && \
+                if [ \"\$PROJECT\" = 'generic_queue' ]; then \
+                  cp lib/queue.c lib/queue.h test/queue/ && \
+                  make -C test/queue purge && make -C test/queue queue-test || { echo \"ERRO: falha ao compilar queue-test\"; continue; } && \
+                  BIN='queue-test' && \
+                  EXPECTED='test/queue/queue-test.txt' && \
+                  echo \"=== Testando \$BIN ===\" && \
+                  ACTUAL=\$(timeout 30 test/queue/\$BIN 2>&1) || true && \
+                  EXPECTED_OUT=\$(cat \"\$EXPECTED\") && \
+                  if [ \"\$ACTUAL\" = \"\$EXPECTED_OUT\" ]; then \
+                    echo \"PASS \$BIN\" && TOTAL_PASS=\$((TOTAL_PASS + 1)); \
+                  else \
+                    echo \"FAIL \$BIN\" && \
+                    echo '--- saída esperada ---' && echo \"\$EXPECTED_OUT\" | head -20 && \
+                    echo '--- saída obtida ---' && echo \"\$ACTUAL\" | head -20 && \
+                    TOTAL_FAIL=\$((TOTAL_FAIL + 1)) && ALL_ERRORS=\"\$ALL_ERRORS \$BIN\"; \
+                  fi; \
+                  continue; \
+                fi && \
                 make clean && make \$PROJECT || { echo \"ERRO: falha ao compilar \$PROJECT\"; continue; } && \
                 case \$PROJECT in \
                   p1)  BINS='pingpong-task1 pingpong-task2 pingpong-task3' ;; \
