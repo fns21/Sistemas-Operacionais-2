@@ -187,10 +187,13 @@ void queue_print(char *name, struct queue_t *queue, void(func)(void *))
     while (curr != NULL)
     {
         if (func != NULL)
+        {
             func(curr->item);
+            printf(" ");
+        }
         else
             printf("undef ");
         curr = curr->next;
     }
-    printf(" ] (%d items)\n", queue->size);
+    printf("] (%d items)\n", queue->size);
 }
