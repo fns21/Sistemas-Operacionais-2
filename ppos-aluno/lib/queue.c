@@ -192,5 +192,5 @@ void queue_print(char *name, struct queue_t *queue, void(func)(void *))
             printf("undef ");
         curr = curr->next;
     }
-    printf("] (%d items)\n", queue->size);
+    printf(" ] (%d items)\n", queue->size);
 }
