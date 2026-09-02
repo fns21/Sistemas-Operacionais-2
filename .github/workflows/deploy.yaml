@@ -41,8 +41,8 @@ jobs:
             PROJECTS="p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14"
           elif [[ "$BRANCH" =~ ^p[0-9]+$ ]]; then
             PROJECTS="$BRANCH"
-          elif [[ "$BRANCH" == "generic_queue" ]]; then
-            PROJECTS="generic_queue"
+          elif [[ "$BRANCH" == "generic-queue" ]]; then
+            PROJECTS="generic-queue"
           else
             echo "Branch '$BRANCH' não é um projeto, pulando."
             exit 0
@@ -58,7 +58,7 @@ jobs:
                 echo '=============================' && \
                 echo \"=== Compilando \$PROJECT ===\" && \
                 echo '=============================' && \
-                if [ \"\$PROJECT\" = 'generic_queue' ]; then \
+                if [ \"\$PROJECT\" = 'generic-queue' ]; then \
                   cp lib/queue.c lib/queue.h test/queue/ && \
                   make -C test/queue purge && make -C test/queue queue-test || { echo \"ERRO: falha ao compilar queue-test\"; continue; } && \
                   BIN='queue-test' && \
