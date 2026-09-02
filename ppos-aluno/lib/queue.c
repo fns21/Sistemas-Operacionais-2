@@ -17,7 +17,7 @@ struct queue_t
     struct node_t* head;
     struct node_t* tail;
     int size;
-}
+}.
 
 struct node_t
 {
