@@ -9,6 +9,7 @@
 #include <string.h>
 #include "macros.h"
 #include "dispatcher.h"
+#include "scheduler.h"
 #include "queue.h"
 #include "task.h"
 
