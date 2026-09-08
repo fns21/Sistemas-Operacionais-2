@@ -17,7 +17,7 @@ enum task_status_t
 {
     TASK_READY,
     TASK_RUNNING,
-    TASK_WAITING,
+    TASK_SUSPENDED,
     TASK_TERMINATED
 };
 
@@ -27,7 +27,7 @@ typedef struct task_t
     int id;         // identificador da tarefa
     char *name;     // nome da tarefa
     struct ctx_t context;  // contexto da tarefa
-    int status;     // pronta, executando, ...
+    enum task_status_t status;     // pronta, executando, ...
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
 } task_t;
 

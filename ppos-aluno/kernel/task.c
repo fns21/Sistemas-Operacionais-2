@@ -11,13 +11,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include "task.h"
+#include "queue.h"
+#include "dispatcher.h"
 #include "macros.h"
 
 #define STACK_SIZE 64 * 1024  // 64 KB por tarefa
 
 task_t *current_task = NULL;
-static int next_id = 0;
 task_t *task_kernel = NULL;
+static int next_id = 0;
+
+extern queue_t *task_ready_queue;
 
 void task_init()
 {
@@ -75,6 +79,8 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->status = TASK_READY;
     new_task->parent = current_task;
 
+    queue_add(task_ready_queue, new_task);
+
     ppos_debug("Task %s (ID %d) create task %s (ID %d)\n",
                current_task->name, current_task->id,
                new_task->name ? new_task->name : "(null)", new_task->id);
@@ -111,4 +117,23 @@ char *task_name(struct task_t *task)
     if (task == NULL)
         return current_task ? current_task->name : NULL;
     return task->name;
+}
+
+void task_yield()
+{
+    current_task->status = TASK_READY;
+
+    queue_add(task_ready_queue, current_task);
+
+    task_switch(task_kernel);
+}
+
+void task_exit(int exit_code)
+{
+    //ppos_debug("Task %s (ID %d) exited with code %d\n",
+    //          current_task->name, current_task->id, exit_code);
+
+    current_task->status = TASK_TERMINATED;
+
+    task_switch(task_kernel);
 }
