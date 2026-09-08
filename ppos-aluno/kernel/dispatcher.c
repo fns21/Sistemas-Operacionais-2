@@ -9,14 +9,35 @@
 #include <string.h>
 #include "macros.h"
 #include "dispatcher.h"
+#include "scheduler.h"
+#include "queue.h"
 #include "task.h"
+
+struct queue_t *task_ready_queue = NULL;
 
 void dispatcher_init()
 {
+    task_ready_queue = queue_create();
+
+    if (task_ready_queue == NULL)
+    {
+        ppos_debug("Erro ao criar fila de tarefas prontas");
+        return;
+    }
 }
 
 void dispatcher_term()
 {
+    if (task_ready_queue != NULL)
+    {
+        queue_destroy(task_ready_queue);
+        task_ready_queue = NULL;
+    }
+    else
+    {
+        ppos_debug("Fila de tarefas prontas não existe");
+        return;
+    }
 }
 
 void dispatcher()
@@ -27,11 +48,38 @@ void dispatcher()
     if (task_user == NULL)
     {
         ppos_debug("Erro ao criar tarefa de usuário");
-        exit(1);
+        return;
     }
 
-    task_switch(task_user);
-    task_destroy(task_user);
+    while(queue_size(task_ready_queue) > 0)
+    {
+        task_t *next_task = scheduler(task_ready_queue);
+        if (next_task == NULL)
+        {
+            ppos_debug("Nenhuma tarefa pronta para executar");
+            break;
+        }
+
+        task_run(next_task);
+
+        switch (next_task->status)
+        {
+            case TASK_READY:
+                queue_add(task_ready_queue, next_task);
+                break;
+            case TASK_SUSPENDED:
+                break;
+            case TASK_RUNNING:
+                break;
+            case TASK_TERMINATED:
+                task_destroy(next_task);
+                break;
+            default:
+                ppos_debug("Status de tarefa inválido");
+                break;
+        }
+    }
+
 }
 
 int task_switch(struct task_t *task)
@@ -50,7 +98,7 @@ int task_switch(struct task_t *task)
         return NOERROR;
 
     // Se nao terminou, volta para a fila de prontas e muda o status da tarefa atual
-    if (prev_task->status != TASK_TERMINATED)
+    if (prev_task != task_kernel && prev_task->status != TASK_TERMINATED)
         prev_task->status = TASK_READY;
     task->status = TASK_RUNNING;
 
@@ -64,4 +112,33 @@ int task_switch(struct task_t *task)
     ctx_switch(&prev_task->context, &task->context);
 
     return NOERROR;
+}
+
+void task_run(struct task_t *task)
+{
+    if (task != NULL)
+    {
+        queue_del(task_ready_queue, task);
+        task->status = TASK_RUNNING;
+        task_switch(task);
+    }
+}
+
+void task_suspend(struct queue_t *queue)
+{
+    current_task->status = TASK_SUSPENDED;
+
+    if (queue != NULL)
+        queue_add(queue, current_task);
+    
+    task_switch(task_kernel);
+}
+
+void task_awake(struct task_t *task)
+{
+    if (task != NULL && task->status == TASK_SUSPENDED)
+    {
+        queue_add(task_ready_queue, task);
+        task->status = TASK_READY;
+    }
 }
