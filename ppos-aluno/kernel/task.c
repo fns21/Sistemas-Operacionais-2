@@ -21,7 +21,7 @@ task_t *current_task = NULL;
 task_t *task_kernel = NULL;
 static int next_id = 0;
 
-extern queue_t *task_ready_queue;
+extern struct queue_t *task_ready_queue;
 
 void task_init()
 {
