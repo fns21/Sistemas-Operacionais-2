@@ -12,7 +12,7 @@
 #include "queue.h"
 #include "task.h"
 
-queue_t *task_ready_queue = NULL;
+struct queue_t *task_ready_queue = NULL;
 
 void dispatcher_init()
 {
