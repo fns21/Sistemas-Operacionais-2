@@ -2,6 +2,8 @@
 
 // Este arquivo PODE/DEVE ser alterado.
 
+// GRR20211782 Fabio Naconeczny da Silva
+
 // Escalonador de tarefas prontas.
 
 #include "tcb.h"
