@@ -97,6 +97,9 @@ int task_switch(struct task_t *task)
     if (task->status == TASK_TERMINATED)
         return NOERROR;
 
+    // remove da fila de prontas se estiver lá
+    queue_del(task_ready_queue, task);
+
     // Se nao terminou, volta para a fila de prontas e muda o status da tarefa atual
     if (prev_task != task_kernel && prev_task->status != TASK_TERMINATED)
         prev_task->status = TASK_READY;

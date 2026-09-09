@@ -23,14 +23,13 @@ struct task_t *scheduler(struct queue_t *ready_queue)
     if (ready_queue == NULL || queue_size(ready_queue) == 0)
         return NULL;
 
-    // encontra tprox: tarefa com menor prio_d (menor = mais prioritario) desempate: menor id
+    // encontra tprox: tarefa com menor prio_d (menor = mais prioritario)
     struct task_t *best = queue_head(ready_queue);
     struct task_t *curr = queue_next(ready_queue);
 
     while (curr != NULL)
     {
-        if (curr->prio_d < best->prio_d ||
-           (curr->prio_d == best->prio_d && curr->id > best->id))
+        if (curr->prio_d < best->prio_d)
             best = curr;
 
         curr = queue_next(ready_queue);

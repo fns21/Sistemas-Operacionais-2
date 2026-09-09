@@ -97,6 +97,9 @@ int task_destroy(struct task_t *task)
 
     ppos_debug("Task %s (ID %d) destroyed\n", task->name, task->id);
 
+    // garante que a tarefa nao esta na fila de prontas
+    queue_del(task_ready_queue, task);
+
     // libera a pilha salva no contexto
     if (task->context.stack != NULL)
         free(task->context.stack);
