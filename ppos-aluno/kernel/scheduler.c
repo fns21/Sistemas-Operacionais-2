@@ -21,13 +21,14 @@ struct task_t *scheduler(struct queue_t *ready_queue)
     if (ready_queue == NULL || queue_size(ready_queue) == 0)
         return NULL;
 
-    // encontra tprox: tarefa com maior prio_d (desempate: menor id)
+    // encontra tprox: tarefa com menor prio_d (menor = mais prioritario) desempate: menor id
     struct task_t *best = queue_head(ready_queue);
     struct task_t *curr = queue_next(ready_queue);
 
     while (curr != NULL)
     {
-        if (curr->prio_d > best->prio_d || (curr->prio_d == best->prio_d && curr->id < best->id))
+        if (curr->prio_d < best->prio_d ||
+           (curr->prio_d == best->prio_d && curr->id < best->id))
             best = curr;
 
         curr = queue_next(ready_queue);
@@ -40,8 +41,8 @@ struct task_t *scheduler(struct queue_t *ready_queue)
         if (curr != best)
         {
             curr->prio_d += AGING_FACTOR;
-            if (curr->prio_d > MAX_PRIO)
-                curr->prio_d = MAX_PRIO;
+            if (curr->prio_d < HIGH_PRIO)
+                curr->prio_d = HIGH_PRIO;
         }
         curr = queue_next(ready_queue);
     }
@@ -57,17 +58,16 @@ void sched_setprio(struct task_t *task, int prio)
     if (task == NULL)
         task = current_task;
 
-    if (prio < MIN_PRIO || prio > MAX_PRIO)
+    if (prio > LOW_PRIO || prio < HIGH_PRIO)
         return;
 
     task->prio_e = prio;
     task->prio_d = prio;
-
 }
 
 int sched_getprio(struct task_t *task)
-{   
-    if(task == NULL)
+{
+    if (task == NULL)
         task = current_task;
 
     return task->prio_e;

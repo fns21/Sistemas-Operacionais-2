@@ -13,9 +13,9 @@
 
 #include "ctx.h"
 
-#define MAX_PRIO 20
-#define MIN_PRIO -20
-#define AGING_FACTOR 1
+#define LOW_PRIO 20
+#define HIGH_PRIO -20
+#define AGING_FACTOR -1
 
 enum task_status_t
 {
