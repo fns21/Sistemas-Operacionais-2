@@ -16,6 +16,22 @@ void sched_term()
 {
 }
 
+void task_aging(struct queue_t *ready_queue)
+{
+    struct task_t *curr = queue_head(ready_queue);
+
+    while (curr != NULL)
+    {
+        if (curr != current_task)
+        {
+            curr->prio_d += AGING_FACTOR;
+            if (curr->prio_d > MAX_PRIO)
+                curr->prio_d = MAX_PRIO;
+        }
+        curr = queue_next(ready_queue);
+    }
+}
+
 struct task_t *scheduler(struct queue_t *ready_queue)
 {
     if (ready_queue == NULL || queue_size(ready_queue) == 0)
@@ -59,20 +75,4 @@ int sched_getprio(struct task_t *task)
         task = current_task;
 
     return task->prio_e;
-}
-
-void task_aging(struct queue_t *ready_queue)
-{
-    struct task_t *curr = queue_head(ready_queue);
-
-    while (curr != NULL)
-    {
-        if (curr != current_task)
-        {
-            curr->prio_d += AGING_FACTOR;
-            if (curr->prio_d > MAX_PRIO)
-                curr->prio_d = MAX_PRIO;
-        }
-        curr = queue_next(ready_queue);
-    }
 }
