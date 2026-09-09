@@ -16,13 +16,29 @@ void sched_term()
 {
 }
 
-void task_aging(struct queue_t *ready_queue)
+struct task_t *scheduler(struct queue_t *ready_queue)
 {
-    struct task_t *curr = queue_head(ready_queue);
+    if (ready_queue == NULL || queue_size(ready_queue) == 0)
+        return NULL;
+
+    // encontra tprox: tarefa com maior prio_d (desempate: menor id)
+    struct task_t *best = queue_head(ready_queue);
+    struct task_t *curr = queue_next(ready_queue);
 
     while (curr != NULL)
     {
-        if (curr != current_task)
+        if (curr->prio_d > best->prio_d ||
+           (curr->prio_d == best->prio_d && curr->id < best->id))
+            best = curr;
+
+        curr = queue_next(ready_queue);
+    }
+
+    // aplica aging em todas exceto a escolhida
+    curr = queue_head(ready_queue);
+    while (curr != NULL)
+    {
+        if (curr != best)
         {
             curr->prio_d += AGING_FACTOR;
             if (curr->prio_d > MAX_PRIO)
@@ -30,28 +46,9 @@ void task_aging(struct queue_t *ready_queue)
         }
         curr = queue_next(ready_queue);
     }
-}
 
-struct task_t *scheduler(struct queue_t *ready_queue)
-{
-    if (ready_queue == NULL || queue_size(ready_queue) == 0)
-        return NULL;
-
-    struct task_t *best = queue_head(ready_queue);
-    struct task_t *curr = queue_next(ready_queue);
-
-    // encontra a tarefa com maior prioridade dinamica (ou menor id em caso de empate)
-    while (curr != NULL)
-    {
-        if (curr->prio_d > best->prio_d || (curr->prio_d == best->prio_d && curr->id < best->id))
-            best = curr;
-
-        curr = queue_next(ready_queue);
-    }
-
-    task_aging(ready_queue); // aplica envelhecimento a todas as tarefas prontas, exceto a escolhida
-
-    best->prio_d = best->prio_e; // reseta a prioridade dinamica da tarefa escolhida
+    // reseta prio_d da escolhida
+    best->prio_d = best->prio_e;
 
     return best;
 }
