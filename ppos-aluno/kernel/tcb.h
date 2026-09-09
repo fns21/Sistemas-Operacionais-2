@@ -13,6 +13,10 @@
 
 #include "ctx.h"
 
+#define LOW_PRIO 20
+#define HIGH_PRIO -20
+#define AGING_FACTOR -1
+
 enum task_status_t
 {
     TASK_READY,
@@ -29,6 +33,8 @@ typedef struct task_t
     struct ctx_t context;  // contexto da tarefa
     enum task_status_t status;     // pronta, executando, ...
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
+    int prio_e;      // prioridade estatica da tarefa
+    int prio_d;      // prioridade dinamica da tarefa
 } task_t;
 
 extern task_t *current_task;  // tarefa atual

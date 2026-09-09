@@ -65,7 +65,7 @@ void dispatcher()
         switch (next_task->status)
         {
             case TASK_READY:
-                queue_add(task_ready_queue, next_task);
+                // tarefa ja foi reinserida na fila por task_yield
                 break;
             case TASK_SUSPENDED:
                 break;
