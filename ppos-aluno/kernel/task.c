@@ -78,6 +78,8 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->name   = name ? strdup(name) : NULL;
     new_task->status = TASK_READY;
     new_task->parent = current_task;
+    new_task->prio_e   = 0; // prioridade estatica padrão
+    new_task->prio_d   = new_task->prio_e;
 
     queue_add(task_ready_queue, new_task);
 
