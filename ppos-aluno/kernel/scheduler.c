@@ -28,7 +28,7 @@ struct task_t *scheduler(struct queue_t *ready_queue)
     while (curr != NULL)
     {
         if (curr->prio_d < best->prio_d ||
-           (curr->prio_d == best->prio_d && curr->id < best->id))
+           (curr->prio_d == best->prio_d && curr->id > best->id))
             best = curr;
 
         curr = queue_next(ready_queue);
