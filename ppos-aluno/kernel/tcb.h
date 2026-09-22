@@ -35,6 +35,7 @@ typedef struct task_t
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
     int prio_e;      // prioridade estatica da tarefa
     int prio_d;      // prioridade dinamica da tarefa
+    int quantum;     // quantum restante em ticks
 } task_t;
 
 extern task_t *current_task;  // tarefa atual

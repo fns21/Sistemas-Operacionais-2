@@ -14,6 +14,7 @@
 #include "queue.h"
 #include "dispatcher.h"
 #include "macros.h"
+#include "time.h"
 
 #define STACK_SIZE 64 * 1024  // 64 KB por tarefa
 
@@ -80,6 +81,7 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->parent = current_task;
     new_task->prio_e   = 0; // prioridade estatica padrão
     new_task->prio_d   = new_task->prio_e;
+    new_task->quantum  = QUANTUM; // quantum inicial
 
     queue_add(task_ready_queue, new_task);
 
@@ -126,10 +128,10 @@ char *task_name(struct task_t *task)
 
 void task_yield()
 {
+    hw_irq_enable(0);
     current_task->status = TASK_READY;
-
     queue_add(task_ready_queue, current_task);
-
+    // task_switch reabilita IRQs após o ctx_switch
     task_switch(task_kernel);
 }
 
