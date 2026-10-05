@@ -17,6 +17,10 @@
 #define HIGH_PRIO -20
 #define AGING_FACTOR -1
 
+#define DEFAULT_PRIO 0
+#define DEFAULT_CPU_TIME 0
+#define DEFAULT_ACTIVATIONS 1
+
 enum task_status_t
 {
     TASK_READY,
@@ -35,6 +39,9 @@ typedef struct task_t
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
     int prio_e;      // prioridade estatica da tarefa
     int prio_d;      // prioridade dinamica da tarefa
+    int quantum;     // tempo restante em ticks
+    int cpu_time;    // tempo de CPU consumido em ticks
+    int activations; // número de ativações da tarefa
 } task_t;
 
 extern task_t *current_task;  // tarefa atual

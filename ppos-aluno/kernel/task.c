@@ -14,6 +14,7 @@
 #include "queue.h"
 #include "dispatcher.h"
 #include "macros.h"
+#include "time.h"
 
 #define STACK_SIZE 64 * 1024  // 64 KB por tarefa
 
@@ -33,10 +34,12 @@ void task_init()
         exit(1);
     }
 
-    task_kernel->id     = next_id++;
-    task_kernel->name   = "kernel";
-    task_kernel->status = TASK_RUNNING;
-    task_kernel->parent = NULL;
+    task_kernel->id          = next_id++;
+    task_kernel->name        = "kernel";
+    task_kernel->status      = TASK_RUNNING;
+    task_kernel->parent      = NULL;
+    task_kernel->cpu_time    = DEFAULT_CPU_TIME;
+    task_kernel->activations = DEFAULT_ACTIVATIONS; // começa rodando
 
     memset(&task_kernel->context, 0, sizeof(struct ctx_t));
 
@@ -74,12 +77,15 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
         return NULL;
     }
 
-    new_task->id     = next_id++;
-    new_task->name   = name ? strdup(name) : NULL;
-    new_task->status = TASK_READY;
-    new_task->parent = current_task;
-    new_task->prio_e   = 0; // prioridade estatica padrão
-    new_task->prio_d   = new_task->prio_e;
+    new_task->id          = next_id++;
+    new_task->name        = name ? strdup(name) : NULL;
+    new_task->status      = TASK_READY;
+    new_task->parent      = current_task;
+    new_task->prio_e      = DEFAULT_PRIO;
+    new_task->prio_d      = new_task->prio_e;
+    new_task->quantum     = QUANTUM; // quantum inicial
+    new_task->cpu_time    = DEFAULT_CPU_TIME;
+    new_task->activations = DEFAULT_ACTIVATIONS;
 
     queue_add(task_ready_queue, new_task);
 
@@ -127,16 +133,19 @@ char *task_name(struct task_t *task)
 void task_yield()
 {
     current_task->status = TASK_READY;
-
     queue_add(task_ready_queue, current_task);
-
+    current_task->activations++;
     task_switch(task_kernel);
 }
 
 void task_exit(int exit_code)
 {
-    //ppos_debug("Task %s (ID %d) exited with code %d\n",
-    //          current_task->name, current_task->id, exit_code);
+    ppos_debug("Task %s (ID %d) exited with code %d\n",
+              current_task->name, current_task->id, exit_code);
+
+    printk("PPOS: task %3d (%s), %5u ms run, %5d ms cpu, %5d acts, exit code %3d\n",
+           current_task->id, current_task->name,
+           time(), current_task->cpu_time, current_task->activations, exit_code);    
 
     current_task->status = TASK_TERMINATED;
 

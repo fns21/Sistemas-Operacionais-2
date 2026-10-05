@@ -12,6 +12,8 @@
 #include "scheduler.h"
 #include "queue.h"
 #include "task.h"
+#include "time.h"
+#include "hardware/cpu.h"
 
 struct queue_t *task_ready_queue = NULL;
 
@@ -80,6 +82,10 @@ void dispatcher()
         }
     }
 
+    // relatório final do kernel
+    printk("PPOS: task %3d (%s), %5u ms run, %5d ms cpu, %5d acts, exit code   0\n",
+           task_kernel->id, task_kernel->name,
+           time(), task_kernel->cpu_time, task_kernel->activations);
 }
 
 int task_switch(struct task_t *task)
@@ -108,11 +114,16 @@ int task_switch(struct task_t *task)
     // Atualiza tarefa atual antes da troca de contexto
     current_task = task;
 
+    // contabiliza ativações
+    if (task == task_kernel)
+        task_kernel->activations++;
+
     ppos_debug("task %d (%s) switch to task %d (%s)\n",
                prev_task->id, prev_task->name, task->id, task->name);
 
-    // Salva contexto da tarefa anterior e carrega o da próxima
+    hw_irq_enable(0); // evita contar o tempo de CPU da tarefa atual durante o ctx_switch
     ctx_switch(&prev_task->context, &task->context);
+    hw_irq_enable(1);
 
     return NOERROR;
 }
@@ -123,6 +134,7 @@ void task_run(struct task_t *task)
     {
         queue_del(task_ready_queue, task);
         task->status = TASK_RUNNING;
+        task->quantum = QUANTUM; //reseta
         task_switch(task);
     }
 }
