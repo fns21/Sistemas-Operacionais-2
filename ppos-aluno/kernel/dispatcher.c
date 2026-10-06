@@ -141,6 +141,8 @@ void task_run(struct task_t *task)
 
 void task_suspend(struct queue_t *queue)
 {
+    queue_del(task_ready_queue, current_task);
+    
     current_task->status = TASK_SUSPENDED;
 
     if (queue != NULL)

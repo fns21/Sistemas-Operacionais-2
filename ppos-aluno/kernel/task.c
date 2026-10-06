@@ -149,5 +149,28 @@ void task_exit(int exit_code)
 
     current_task->status = TASK_TERMINATED;
 
+    task_awake(current_task);
+
     task_switch(task_kernel);
+}
+
+int task_wait(struct task_t *task)
+{
+    if (task == NULL || task->status == TASK_TERMINATED)
+        return 0; // encerra imediatamente sem suspender a tarefa atual
+
+    ppos_debug("Task %s (ID %d) waiting for task %s (ID %d)\n",
+               current_task->name, current_task->id,
+               task->name, task->id);
+
+    struct queue_t *wait_queue = malloc(sizeof(struct queue_t));
+    if (wait_queue == NULL)
+    {
+        ppos_debug("Erro ao alocar fila de espera para task %s (ID %d)\n",
+                   task->name, task->id);
+        return ERROR;
+    }
+
+    // fila de tarefas suspensas esperando a tarefa "task" terminar
+    task_suspend(wait_queue);
 }
