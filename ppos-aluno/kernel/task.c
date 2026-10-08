@@ -23,6 +23,7 @@ task_t *task_kernel = NULL;
 static int next_id = 0;
 
 extern struct queue_t *task_ready_queue;
+struct queue_t *task_suspended_queue;
 
 void task_init()
 {
@@ -38,16 +39,39 @@ void task_init()
     task_kernel->name        = "kernel";
     task_kernel->status      = TASK_RUNNING;
     task_kernel->parent      = NULL;
+    task_kernel->prio_e      = DEFAULT_PRIO;
+    task_kernel->prio_d      = task_kernel->prio_e;
+    task_kernel->quantum     = QUANTUM; // quantum inicial
     task_kernel->cpu_time    = DEFAULT_CPU_TIME;
     task_kernel->activations = DEFAULT_ACTIVATIONS; // começa rodando
+    task_kernel->waiting_for = NULL;
+    task_kernel->exit_code   = 0;
 
     memset(&task_kernel->context, 0, sizeof(struct ctx_t));
 
     current_task = task_kernel;
+
+    task_suspended_queue = queue_create();
+    if (task_suspended_queue == NULL)
+    {
+        ppos_debug("Erro ao criar fila de tarefas suspensas");
+        exit(1);
+    }
 }
 
 void task_term()
 {
+    if (task_kernel != NULL)
+    {
+        free(task_kernel);
+        task_kernel = NULL;
+    }
+
+    if (task_suspended_queue != NULL)
+    {
+        queue_destroy(task_suspended_queue);
+        task_suspended_queue = NULL;
+    }
 }
 
 task_t *task_create(char *name, void (*entry)(void *), void *arg)
@@ -86,6 +110,8 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->quantum     = QUANTUM; // quantum inicial
     new_task->cpu_time    = DEFAULT_CPU_TIME;
     new_task->activations = DEFAULT_ACTIVATIONS;
+    new_task->waiting_for = NULL;
+    new_task->exit_code   = 0;
 
     queue_add(task_ready_queue, new_task);
 
@@ -148,8 +174,9 @@ void task_exit(int exit_code)
            time(), current_task->cpu_time, current_task->activations, exit_code);    
 
     current_task->status = TASK_TERMINATED;
+    current_task->exit_code = exit_code;
 
-    task_awake(current_task);
+    task_awake(current_task); // acorda tarefas que estavam esperando por esta tarefa
 
     task_switch(task_kernel);
 }
@@ -163,14 +190,10 @@ int task_wait(struct task_t *task)
                current_task->name, current_task->id,
                task->name, task->id);
 
-    struct queue_t *wait_queue = malloc(sizeof(struct queue_t));
-    if (wait_queue == NULL)
-    {
-        ppos_debug("Erro ao alocar fila de espera para task %s (ID %d)\n",
-                   task->name, task->id);
-        return ERROR;
-    }
+    current_task->waiting_for = task;  // tarefa atual está esperando a tarefa "task" terminar
 
-    // fila de tarefas suspensas esperando a tarefa "task" terminar
-    task_suspend(wait_queue);
+    // adiciona tarefa atual à fila global de tarefas suspensas 
+    task_suspend(task_suspended_queue);
+
+    return task->exit_code; // retorna o exit code da tarefa que terminou
 }

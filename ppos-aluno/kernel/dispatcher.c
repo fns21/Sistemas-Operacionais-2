@@ -16,6 +16,7 @@
 #include "hardware/cpu.h"
 
 struct queue_t *task_ready_queue = NULL;
+extern struct queue_t *task_suspended_queue;
 
 void dispatcher_init()
 {
@@ -153,9 +154,16 @@ void task_suspend(struct queue_t *queue)
 
 void task_awake(struct task_t *task)
 {
-    if (task != NULL && task->status == TASK_SUSPENDED)
+    task_t *awake = queue_head(task_suspended_queue);
+    while (awake != NULL)
     {
-        queue_add(task_ready_queue, task);
-        task->status = TASK_READY;
+        if (awake->waiting_for == task)
+        {
+            awake->waiting_for = NULL;
+            queue_del(task_suspended_queue, awake);
+            queue_add(task_ready_queue, awake);
+            awake->status = TASK_READY;
+        }
+        awake = queue_next(task_suspended_queue);
     }
 }

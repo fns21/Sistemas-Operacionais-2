@@ -42,6 +42,8 @@ typedef struct task_t
     int quantum;     // tempo restante em ticks
     int cpu_time;    // tempo de CPU consumido em ticks
     int activations; // número de ativações da tarefa
+    struct task_t *waiting_for; // tarefa que esta esperando
+    int exit_code;   // código de saída da tarefa
 } task_t;
 
 extern task_t *current_task;  // tarefa atual
