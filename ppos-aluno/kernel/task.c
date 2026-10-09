@@ -183,8 +183,11 @@ void task_exit(int exit_code)
 
 int task_wait(struct task_t *task)
 {
-    if (task == NULL || task->status == TASK_TERMINATED)
-        return 0; // encerra imediatamente sem suspender a tarefa atual
+    if (task == NULL)
+        return ERROR;
+
+    if (task->status == TASK_TERMINATED)
+        return task->exit_code; // tarefa ja terminou, retorna exit code imediatamente
 
     ppos_debug("Task %s (ID %d) waiting for task %s (ID %d)\n",
                current_task->name, current_task->id,

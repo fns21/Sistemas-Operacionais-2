@@ -75,7 +75,8 @@ void dispatcher()
             case TASK_RUNNING:
                 break;
             case TASK_TERMINATED:
-                task_destroy(next_task);
+                // nao destroi aqui: task_wait precisa acessar o exit_code
+                // task_destroy e' chamado explicitamente pelo usuario apos task_wait
                 break;
             default:
                 ppos_debug("Status de tarefa inválido");
@@ -159,11 +160,16 @@ void task_awake(struct task_t *task)
     {
         if (awake->waiting_for == task)
         {
+            task_t *next = queue_next(task_suspended_queue); // salva proximo antes de deletar
             awake->waiting_for = NULL;
             queue_del(task_suspended_queue, awake);
             queue_add(task_ready_queue, awake);
             awake->status = TASK_READY;
+            awake = next;
         }
-        awake = queue_next(task_suspended_queue);
+        else
+        {
+            awake = queue_next(task_suspended_queue);
+        }
     }
 }
