@@ -164,23 +164,6 @@ void task_yield()
     task_switch(task_kernel);
 }
 
-void task_exit(int exit_code)
-{
-    ppos_debug("Task %s (ID %d) exited with code %d\n",
-              current_task->name, current_task->id, exit_code);
-
-    printk("PPOS: task %3d (%s), %5u ms run, %5d ms cpu, %5d acts, exit code %3d\n",
-           current_task->id, current_task->name,
-           time(), current_task->cpu_time, current_task->activations, exit_code);    
-
-    current_task->status = TASK_TERMINATED;
-    current_task->exit_code = exit_code;
-
-    task_awake(current_task); // acorda tarefas que estavam esperando por esta tarefa
-
-    task_switch(task_kernel);
-}
-
 int task_wait(struct task_t *task)
 {
     if (task == NULL)
@@ -199,4 +182,36 @@ int task_wait(struct task_t *task)
     task_suspend(task_suspended_queue);
 
     return task->exit_code; // retorna o exit code da tarefa que terminou
+}
+
+void task_sleep(int t)
+{
+    if (t <= 0)
+        return;
+
+    ppos_debug("Task %s vai dormir %d ms\n",
+               current_task->name, t);
+
+    current_task->status = TASK_SUSPENDED;
+    current_task->quantum = t; // tempo restante em ticks
+
+    queue_add(task_suspended_queue, current_task);
+    task_switch(task_kernel);
+}
+
+void task_exit(int exit_code)
+{
+    ppos_debug("Task %s (ID %d) exited with code %d\n",
+              current_task->name, current_task->id, exit_code);
+
+    printk("PPOS: task %3d (%s), %5u ms run, %5d ms cpu, %5d acts, exit code %3d\n",
+           current_task->id, current_task->name,
+           time(), current_task->cpu_time, current_task->activations, exit_code);    
+
+    current_task->status = TASK_TERMINATED;
+    current_task->exit_code = exit_code;
+
+    task_awake(current_task); // acorda tarefas que estavam esperando por esta tarefa
+
+    task_switch(task_kernel);
 }
