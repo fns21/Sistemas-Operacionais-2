@@ -191,9 +191,6 @@ void task_sleep(int t)
     if (t <= 0)
         return;
 
-    ppos_debug("Task %s vai dormir %d ms\n",
-               current_task->name, t);
-
     current_task->status = TASK_SUSPENDED;
     current_task->timeout = time() + t; // instante absoluto de acordar (ms)
 
