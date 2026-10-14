@@ -163,20 +163,19 @@ void task_awake(struct task_t *task)
     {
         if (awake->waiting_for == task)
         {
-            task_t *next = queue_next(task_suspended_queue); // salva proximo antes de deletar
             awake->waiting_for = NULL;
             queue_del(task_suspended_queue, awake);
             queue_add(task_ready_queue, awake);
             awake->status = TASK_READY;
-            awake = next;
+            awake = queue_item(task_suspended_queue); // item atual após o del
         }
         else if (awake->timeout > 0 && time() >= (unsigned int)awake->timeout)
         {
-            task_t *next = queue_next(task_suspended_queue); // salva proximo antes de deletar
+            awake->timeout = 0;
             queue_del(task_suspended_queue, awake);
             queue_add(task_ready_queue, awake);
             awake->status = TASK_READY;
-            awake = next;
+            awake = queue_item(task_suspended_queue);
         }
         else
         {

@@ -194,6 +194,7 @@ void task_sleep(int t)
     current_task->status = TASK_SUSPENDED;
     current_task->timeout = time() + t; // instante absoluto de acordar (ms)
 
+    queue_del(task_ready_queue, current_task); // garante que não está na fila de prontas
     queue_add(task_suspended_queue, current_task);
     task_switch(task_kernel);
 }
