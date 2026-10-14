@@ -54,13 +54,16 @@ void dispatcher()
         return;
     }
 
-    while(queue_size(task_ready_queue) > 0)
+    while(queue_size(task_ready_queue) > 0 || queue_size(task_suspended_queue) > 0)
     {
+        // acorda tarefas suspensas cujo timeout expirou
+        task_awake(NULL);
+
         task_t *next_task = scheduler(task_ready_queue);
         if (next_task == NULL)
         {
-            ppos_debug("Nenhuma tarefa pronta para executar");
-            break;
+            // nenhuma tarefa pronta; ha suspensas aguardando timeout
+            continue;
         }
 
         task_run(next_task);
@@ -162,6 +165,14 @@ void task_awake(struct task_t *task)
         {
             task_t *next = queue_next(task_suspended_queue); // salva proximo antes de deletar
             awake->waiting_for = NULL;
+            queue_del(task_suspended_queue, awake);
+            queue_add(task_ready_queue, awake);
+            awake->status = TASK_READY;
+            awake = next;
+        }
+        else if (awake->timeout > 0 && time() >= (unsigned int)awake->timeout)
+        {
+            task_t *next = queue_next(task_suspended_queue); // salva proximo antes de deletar
             queue_del(task_suspended_queue, awake);
             queue_add(task_ready_queue, awake);
             awake->status = TASK_READY;

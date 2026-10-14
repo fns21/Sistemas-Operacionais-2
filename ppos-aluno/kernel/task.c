@@ -45,6 +45,7 @@ void task_init()
     task_kernel->cpu_time    = DEFAULT_CPU_TIME;
     task_kernel->activations = DEFAULT_ACTIVATIONS; // começa rodando
     task_kernel->waiting_for = NULL;
+    task_kernel->timeout = 0;
     task_kernel->exit_code   = 0;
 
     memset(&task_kernel->context, 0, sizeof(struct ctx_t));
@@ -111,6 +112,7 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->cpu_time    = DEFAULT_CPU_TIME;
     new_task->activations = DEFAULT_ACTIVATIONS;
     new_task->waiting_for = NULL;
+    new_task->timeout = 0;
     new_task->exit_code   = 0;
 
     queue_add(task_ready_queue, new_task);
@@ -193,7 +195,7 @@ void task_sleep(int t)
                current_task->name, t);
 
     current_task->status = TASK_SUSPENDED;
-    current_task->quantum = t; // tempo restante em ticks
+    current_task->timeout = time() + t; // instante absoluto de acordar (ms)
 
     queue_add(task_suspended_queue, current_task);
     task_switch(task_kernel);

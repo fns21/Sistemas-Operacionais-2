@@ -30,6 +30,9 @@ static void timer_handler(int irq)
 
     current_task->quantum--;
 
+    if(current_task->timeout > 0)
+        current_task->timeout--;
+
     // quantum esgotado: devolve a CPU ao dispatcher
     if (current_task->quantum <= 0)
         task_yield();

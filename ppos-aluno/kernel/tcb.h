@@ -43,6 +43,7 @@ typedef struct task_t
     int cpu_time;    // tempo de CPU consumido em ticks
     int activations; // número de ativações da tarefa
     struct task_t *waiting_for; // tarefa que esta esperando
+    int timeout; // instante absoluto de acordar (ms)
     int exit_code;   // código de saída da tarefa
 } task_t;
 
