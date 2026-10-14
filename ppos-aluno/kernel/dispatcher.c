@@ -151,6 +151,7 @@ void task_suspend(struct queue_t *queue)
     queue_del(task_ready_queue, current_task);
     
     current_task->status = TASK_SUSPENDED;
+    current_task->activations++;
 
     if (queue != NULL)
         queue_add(queue, current_task);
@@ -160,10 +161,15 @@ void task_suspend(struct queue_t *queue)
 
 void task_awake(struct task_t *task)
 {
+    // le o relogio uma unica vez: evita que o tick avance no meio da
+    // varredura e acorde tarefas com mesmo timeout fora de ordem
+    unsigned int now = time();
+
     task_t *awake = queue_head(task_suspended_queue);
     while (awake != NULL)
     {
-        if (awake->waiting_for == task)
+        // task == NULL: chamada do dispatcher, so acorda por timeout
+        if (task != NULL && awake->waiting_for == task)
         {
             awake->waiting_for = NULL;
             queue_del(task_suspended_queue, awake);
@@ -171,7 +177,7 @@ void task_awake(struct task_t *task)
             awake->status = TASK_READY;
             awake = queue_item(task_suspended_queue); // item atual após o del
         }
-        else if (awake->timeout > 0 && time() >= (unsigned int)awake->timeout)
+        else if (awake->timeout > 0 && now >= (unsigned int)awake->timeout)
         {
             awake->timeout = 0;
             queue_del(task_suspended_queue, awake);
