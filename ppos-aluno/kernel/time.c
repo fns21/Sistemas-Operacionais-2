@@ -45,10 +45,15 @@ void time_init()
     hw_timer(TICK, TICK);
 }
 
+// tratador vazio: um tick ainda pendente nao deve matar o processo
+static void timer_ignore(int irq)
+{
+}
+
 void time_term()
 {
     hw_timer(0, 0);
-    hw_irq_handle(IRQ_TIMER, NULL);
+    hw_irq_handle(IRQ_TIMER, timer_ignore);
 }
 
 unsigned int time()
