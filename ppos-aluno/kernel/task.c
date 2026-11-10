@@ -20,6 +20,7 @@
 
 task_t *current_task = NULL;
 task_t *task_kernel = NULL;
+volatile int preempt_lock = 0;
 static int next_id = 0;
 
 extern struct queue_t *task_ready_queue;
@@ -75,12 +76,23 @@ void task_term()
     }
 }
 
+static void kernel_lock_init(void *arg)
+{
+    task_t *task = arg;
+
+    preempt_lock = 0;
+    task->entry(task->arg);
+}
+
 task_t *task_create(char *name, void (*entry)(void *), void *arg)
 {
+    preempt_lock = 1; // evita preempcao durante a alocacao e a alteracao da fila
+
     task_t *new_task = malloc(sizeof(task_t));
     if (new_task == NULL)
     {
         ppos_debug("Erro ao alocar memória para a nova tarefa");
+        preempt_lock = 0;
         return NULL;
     }
 
@@ -91,17 +103,21 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     {
         ppos_debug("Erro ao alocar pilha para a nova tarefa");
         free(new_task);
+        preempt_lock = 0;
         return NULL;
     }
 
-    if (ctx_create(&new_task->context, entry, arg, stack, STACK_SIZE) < 0)
+    if (ctx_create(&new_task->context, kernel_lock_init, new_task, stack, STACK_SIZE) < 0)
     {
         ppos_debug("Erro ao criar contexto da nova tarefa");
         free(stack);
         free(new_task);
+        preempt_lock = 0;
         return NULL;
     }
 
+    new_task->entry       = entry;
+    new_task->arg         = arg;
     new_task->id          = next_id++;
     new_task->name        = name ? strdup(name) : NULL;
     new_task->status      = TASK_READY;
@@ -112,10 +128,11 @@ task_t *task_create(char *name, void (*entry)(void *), void *arg)
     new_task->cpu_time    = DEFAULT_CPU_TIME;
     new_task->activations = DEFAULT_ACTIVATIONS;
     new_task->waiting_for = NULL;
-    new_task->timeout = 0;
+    new_task->timeout     = 0;
     new_task->exit_code   = 0;
 
     queue_add(task_ready_queue, new_task);
+    preempt_lock = 0;
 
     ppos_debug("Task %s (ID %d) create task %s (ID %d)\n",
                current_task->name, current_task->id,
@@ -132,6 +149,7 @@ int task_destroy(struct task_t *task)
     ppos_debug("Task %s (ID %d) destroyed\n", task->name, task->id);
 
     // garante que a tarefa nao esta na fila de prontas
+    preempt_lock = 1;
     queue_del(task_ready_queue, task);
 
     // libera a pilha salva no contexto
@@ -140,6 +158,7 @@ int task_destroy(struct task_t *task)
 
     free(task->name);
     free(task);
+    preempt_lock = 0;
 
     return NOERROR;
 }
@@ -160,6 +179,7 @@ char *task_name(struct task_t *task)
 
 void task_yield()
 {
+    preempt_lock = 1; // destravada pelo task_switch ao retomar
     current_task->status = TASK_READY;
     queue_add(task_ready_queue, current_task);
     current_task->activations++;
@@ -171,8 +191,13 @@ int task_wait(struct task_t *task)
     if (task == NULL)
         return ERROR;
 
+    preempt_lock = 1;
+
     if (task->status == TASK_TERMINATED)
+    {
+        preempt_lock = 0;
         return task->exit_code; // tarefa ja terminou, retorna exit code imediatamente
+    }
 
     ppos_debug("Task %s (ID %d) waiting for task %s (ID %d)\n",
                current_task->name, current_task->id,
@@ -191,6 +216,8 @@ void task_sleep(int t)
     if (t <= 0)
         return;
 
+    preempt_lock = 1; // destravada pelo task_switch ao retomar
+
     current_task->status = TASK_SUSPENDED;
     current_task->timeout = time() + t; // instante absoluto de acordar (ms)
     current_task->activations++;
@@ -208,6 +235,8 @@ void task_exit(int exit_code)
     printk("PPOS: task %3d (%s), %5u ms run, %5d ms cpu, %5d acts, exit code %3d\n",
            current_task->id, current_task->name,
            time(), current_task->cpu_time, current_task->activations, exit_code);    
+
+    preempt_lock = 1;
 
     current_task->status = TASK_TERMINATED;
     current_task->exit_code = exit_code;

@@ -13,7 +13,6 @@
 #include "queue.h"
 #include "task.h"
 #include "time.h"
-#include "hardware/cpu.h"
 
 struct queue_t *task_ready_queue = NULL;
 extern struct queue_t *task_suspended_queue;
@@ -97,6 +96,8 @@ int task_switch(struct task_t *task)
 {
     task_t *prev_task = current_task;
 
+    preempt_lock = 1; // liberada apos o ctx_switch
+
     // Finaliza e volta ao pai
     if (task == NULL)
     {
@@ -106,7 +107,10 @@ int task_switch(struct task_t *task)
 
     // Ignora sem erro se a tarefa já tiver terminado
     if (task->status == TASK_TERMINATED)
+    {
+        preempt_lock = 0;
         return NOERROR;
+    }
 
     // remove da fila de prontas se estiver lá
     queue_del(task_ready_queue, task);
@@ -128,9 +132,8 @@ int task_switch(struct task_t *task)
     ppos_debug("task %d (%s) switch to task %d (%s)\n",
                prev_task->id, prev_task->name, task->id, task->name);
 
-    hw_irq_enable(0); // evita contar o tempo de CPU da tarefa atual durante o ctx_switch
     ctx_switch(&prev_task->context, &task->context);
-    hw_irq_enable(1);
+    preempt_lock = 0;
 
     return NOERROR;
 }
@@ -148,6 +151,7 @@ void task_run(struct task_t *task)
 
 void task_suspend(struct queue_t *queue)
 {
+    preempt_lock = 1; // destravada pelo task_switch ao retomar
     queue_del(task_ready_queue, current_task);
     
     current_task->status = TASK_SUSPENDED;
