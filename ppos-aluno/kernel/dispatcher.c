@@ -13,7 +13,6 @@
 #include "queue.h"
 #include "task.h"
 #include "time.h"
-#include "hardware/cpu.h"
 
 struct queue_t *task_ready_queue = NULL;
 extern struct queue_t *task_suspended_queue;
@@ -54,13 +53,16 @@ void dispatcher()
         return;
     }
 
-    while(queue_size(task_ready_queue) > 0)
+    while(queue_size(task_ready_queue) > 0 || queue_size(task_suspended_queue) > 0)
     {
+        // acorda tarefas suspensas cujo timeout expirou
+        task_awake(NULL);
+
         task_t *next_task = scheduler(task_ready_queue);
         if (next_task == NULL)
         {
-            ppos_debug("Nenhuma tarefa pronta para executar");
-            break;
+            // nenhuma tarefa pronta; ha suspensas aguardando timeout
+            continue;
         }
 
         task_run(next_task);
@@ -75,7 +77,8 @@ void dispatcher()
             case TASK_RUNNING:
                 break;
             case TASK_TERMINATED:
-                task_destroy(next_task);
+                // nao destroi aqui: task_wait precisa acessar o exit_code
+                // task_destroy e' chamado explicitamente pelo usuario apos task_wait
                 break;
             default:
                 ppos_debug("Status de tarefa inválido");
@@ -93,6 +96,8 @@ int task_switch(struct task_t *task)
 {
     task_t *prev_task = current_task;
 
+    preempt_lock = 1; // liberada apos o ctx_switch
+
     // Finaliza e volta ao pai
     if (task == NULL)
     {
@@ -102,13 +107,18 @@ int task_switch(struct task_t *task)
 
     // Ignora sem erro se a tarefa já tiver terminado
     if (task->status == TASK_TERMINATED)
+    {
+        preempt_lock = 0;
         return NOERROR;
+    }
 
     // remove da fila de prontas se estiver lá
     queue_del(task_ready_queue, task);
 
-    // Se nao terminou, volta para a fila de prontas e muda o status da tarefa atual
-    if (prev_task != task_kernel && prev_task->status != TASK_TERMINATED)
+    // Se nao terminou nem foi suspensa, volta para READY
+    if (prev_task != task_kernel &&
+        prev_task->status != TASK_TERMINATED &&
+        prev_task->status != TASK_SUSPENDED)
         prev_task->status = TASK_READY;
     task->status = TASK_RUNNING;
 
@@ -122,9 +132,8 @@ int task_switch(struct task_t *task)
     ppos_debug("task %d (%s) switch to task %d (%s)\n",
                prev_task->id, prev_task->name, task->id, task->name);
 
-    hw_irq_enable(0); // evita contar o tempo de CPU da tarefa atual durante o ctx_switch
     ctx_switch(&prev_task->context, &task->context);
-    hw_irq_enable(1);
+    preempt_lock = 0;
 
     return NOERROR;
 }
@@ -142,9 +151,11 @@ void task_run(struct task_t *task)
 
 void task_suspend(struct queue_t *queue)
 {
+    preempt_lock = 1; // destravada pelo task_switch ao retomar
     queue_del(task_ready_queue, current_task);
     
     current_task->status = TASK_SUSPENDED;
+    current_task->activations++;
 
     if (queue != NULL)
         queue_add(queue, current_task);
@@ -154,16 +165,33 @@ void task_suspend(struct queue_t *queue)
 
 void task_awake(struct task_t *task)
 {
+    // le o relogio uma unica vez: evita que o tick avance no meio da
+    // varredura e acorde tarefas com mesmo timeout fora de ordem
+    unsigned int now = time();
+
     task_t *awake = queue_head(task_suspended_queue);
     while (awake != NULL)
     {
-        if (awake->waiting_for == task)
+        // task == NULL: chamada do dispatcher, so acorda por timeout
+        if (task != NULL && awake->waiting_for == task)
         {
             awake->waiting_for = NULL;
             queue_del(task_suspended_queue, awake);
             queue_add(task_ready_queue, awake);
             awake->status = TASK_READY;
+            awake = queue_item(task_suspended_queue); // item atual após o del
         }
-        awake = queue_next(task_suspended_queue);
+        else if (awake->timeout > 0 && now >= (unsigned int)awake->timeout)
+        {
+            awake->timeout = 0;
+            queue_del(task_suspended_queue, awake);
+            queue_add(task_ready_queue, awake);
+            awake->status = TASK_READY;
+            awake = queue_item(task_suspended_queue);
+        }
+        else
+        {
+            awake = queue_next(task_suspended_queue);
+        }
     }
 }

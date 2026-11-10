@@ -30,8 +30,9 @@ static void timer_handler(int irq)
 
     current_task->quantum--;
 
-    // quantum esgotado: devolve a CPU ao dispatcher
-    if (current_task->quantum <= 0)
+    // quantum esgotado: devolve a CPU ao dispatcher, exceto se a tarefa
+    // estiver em codigo do nucleo
+    if (current_task->quantum <= 0 && !preempt_lock)
         task_yield();
 }
 

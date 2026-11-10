@@ -35,6 +35,8 @@ typedef struct task_t
     int id;         // identificador da tarefa
     char *name;     // nome da tarefa
     struct ctx_t context;  // contexto da tarefa
+    void (*entry)(void *); // funcao de entrada da tarefa
+    void *arg;             // argumento da funcao de entrada
     enum task_status_t status;     // pronta, executando, ...
     struct task_t *parent; // tarefa que a criou (NULL se for a tarefa kernel)
     int prio_e;      // prioridade estatica da tarefa
@@ -43,10 +45,12 @@ typedef struct task_t
     int cpu_time;    // tempo de CPU consumido em ticks
     int activations; // número de ativações da tarefa
     struct task_t *waiting_for; // tarefa que esta esperando
+    int timeout; // instante absoluto de acordar (ms)
     int exit_code;   // código de saída da tarefa
 } task_t;
 
 extern task_t *current_task;  // tarefa atual
 extern task_t *task_kernel;   // tarefa do núcleo
+extern volatile int preempt_lock; // 1: tarefa em codigo do nucleo, nao pode ser preemptada
 
 #endif
