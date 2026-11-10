@@ -47,6 +47,7 @@ typedef struct task_t
     struct task_t *waiting_for; // tarefa que esta esperando
     int timeout; // instante absoluto de acordar (ms)
     int exit_code;   // código de saída da tarefa
+    int sem_result;  // retorno do sem_down em que a tarefa estava bloqueada
 } task_t;
 
 extern task_t *current_task;  // tarefa atual
