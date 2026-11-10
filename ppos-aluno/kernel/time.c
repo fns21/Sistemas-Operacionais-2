@@ -45,7 +45,6 @@ void time_init()
     hw_timer(TICK, TICK);
 }
 
-// tratador vazio: um tick ainda pendente nao deve matar o processo
 static void timer_ignore(int irq)
 {
 }
